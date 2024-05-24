@@ -87,14 +87,13 @@ def process_datasets(flinn_csv, fisher_csv):
                 **flinn_row.to_dict(),
                 **(best_match_fisher or {col: '' for col in fisher_csv.columns})
             }
-            combined_matches.append(best_match)
+            # combined_matches.append(best_match)
             write_visited_log(flinn_names)
-        combined_df = pd.DataFrame(combined_matches)
-        if os.path.isfile(f'fisher_master_file.csv'):
-            combined_df.to_csv(f'fisher_master_file.csv', index=False, header=False, mode='a')
-        else:
-            combined_df.to_csv(f'fisher_master_file.csv', index=False)
-        write_visited_log(flinn_names)
+            combined_df = pd.DataFrame([best_match])
+            if os.path.isfile(f'fisher_master_file.csv'):
+                combined_df.to_csv(f'fisher_master_file.csv', index=False, header=False, mode='a')
+            else:
+                combined_df.to_csv(f'fisher_master_file.csv', index=False)
 
 
 
