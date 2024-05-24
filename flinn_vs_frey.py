@@ -88,13 +88,12 @@ def process_datasets(flinn_csv, frey_csv):
                 **flinn_row.to_dict(),
                 **(best_match_frey or {col: '' for col in frey_csv.columns})
             }
-            combined_matches.append(best_match)
             write_visited_log(flinn_names)
-        combined_df = pd.DataFrame(combined_matches)
-        if os.path.isfile(f'frey_master_file.csv'):
-            combined_df.to_csv(f'frey_master_file.csv', index=False, header=False, mode='a')
-        else:
-            combined_df.to_csv(f'frey_master_file.csv', index=False)
+            combined_df = pd.DataFrame([best_match])
+            if os.path.isfile(f'frey_master_file.csv'):
+                combined_df.to_csv(f'frey_master_file.csv', index=False, header=False, mode='a')
+            else:
+                combined_df.to_csv(f'frey_master_file.csv', index=False)
 
 
 
