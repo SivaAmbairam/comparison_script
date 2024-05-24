@@ -77,8 +77,6 @@ def process_datasets(flinn_csv, vwr_csv):
             continue
         if pd.notna(flinn_names):
             flinn_desc = flinn_names.lower()
-
-            write_visited_log(flinn_desc)
             flinn_processed = preprocess_text(flinn_desc)
             vectorizer = TfidfVectorizer().fit([flinn_processed])
             title_1_vec = vectorizer.transform([flinn_processed])
@@ -88,13 +86,12 @@ def process_datasets(flinn_csv, vwr_csv):
                 **flinn_row.to_dict(),
                 **(best_match_vwr or {col: '' for col in vwr_csv.columns})
             }
-            combined_matches.append(best_match)
             write_visited_log(flinn_names)
-        combined_df = pd.DataFrame(combined_matches)
-        if os.path.isfile(f'vwr_master_file.csv'):
-            combined_df.to_csv(f'vwr_master_file.csv', index=False, header=False, mode='a')
-        else:
-            combined_df.to_csv(f'vwr_master_file.csv', index=False)
+            combined_df = pd.DataFrame([best_match])
+            if os.path.isfile(f'vwr_master_file.csv'):
+                combined_df.to_csv(f'vwr_master_file.csv', index=False, header=False, mode='a')
+            else:
+                combined_df.to_csv(f'vwr_master_file.csv', index=False)
 
 
 
