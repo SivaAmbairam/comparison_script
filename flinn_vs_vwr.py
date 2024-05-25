@@ -74,7 +74,7 @@ def process_datasets(flinn_csv, vwr_csv):
     combined_matches = []
 
     for _, flinn_row in flinn_csv.iterrows():
-        flinn_names = flinn_row['Flinn_product_names']
+        flinn_names = flinn_row['Flinn_product_name']
         if flinn_names in read_log_file():
             continue
         if pd.notna(flinn_names):
