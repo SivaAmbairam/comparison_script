@@ -8,13 +8,16 @@ import os
 import time
 
 
-stop_words = set(stopwords.words('english'))
+try:
+    stop_words = set(stopwords.words('english'))
+except:
+    stop_words = set()
 
 
 def preprocess_text(text):
     text = text.lower()
-    text = re.sub(r'[,.-]', '', text)
-    text = re.sub(r'\b\d+\b|\bml\b', '', text)
+    # text = re.sub(r'[,.-]', '', text)
+    # text = re.sub(r'\b\d+\b|\bml\b', '', text)
     return text.strip()
 
 
@@ -41,6 +44,9 @@ def combined_similarity(title_1, title_2, vectorizer, title_1_vec):
     title_2_tokens = tokenized_text(title_2)
     matching_words = set(title_1_tokens) & set(title_2_tokens)
     token_similarity_score = len(matching_words) / max(len(title_1_tokens), len(title_2_tokens))
+
+    if not title_2_processed:
+        return 0
 
     title_2_vec = vectorizer.transform([title_2_processed])
     tfidf_cosine = cosine_similarity(title_1_vec, title_2_vec)[0][0]
@@ -72,30 +78,47 @@ def process_datasets(flinn_csv, fisher_csv):
     combined_matches = []
 
     for _, flinn_row in flinn_csv.iterrows():
-        flinn_names = flinn_row['Flinn_product_names']
+        flinn_names = flinn_row['Flinn_product_name']
         if flinn_names in read_log_file():
             continue
         if pd.notna(flinn_names):
             flinn_desc = flinn_names.lower()
+            print(f"Original: {flinn_desc}")
+
+            if re.search('^\d"\sx\s\d"', str(flinn_names)):
+                best_match = {
+                    **flinn_row.to_dict(),
+                    **{col: '' for col in fisher_csv.columns}
+                }
+                combined_df = pd.DataFrame([best_match])
+                if os.path.isfile(f'fisher_master_file.csv'):
+                    combined_df.to_csv(f'fisher_master_file.csv', index=False, header=False, mode='a')
+                else:
+                    combined_df.to_csv(f'fisher_master_file.csv', index=False)
+                write_visited_log(flinn_names)
+                continue
 
             flinn_processed = preprocess_text(flinn_desc)
-            vectorizer = TfidfVectorizer().fit([flinn_processed])
-            title_1_vec = vectorizer.transform([flinn_processed])
+            if flinn_processed:
+                try:
+                    vectorizer = TfidfVectorizer().fit([flinn_processed])
+                    title_1_vec = vectorizer.transform([flinn_processed])
 
-            best_match_fisher = find_best_match(flinn_desc, fisher_csv, 'Fisher_product_name', vectorizer, title_1_vec)[1]
-            best_match = {
-                **flinn_row.to_dict(),
-                **(best_match_fisher or {col: '' for col in fisher_csv.columns})
-            }
-            # combined_matches.append(best_match)
-            write_visited_log(flinn_names)
-            combined_df = pd.DataFrame([best_match])
-            if os.path.isfile(f'fisher_master_file.csv'):
-                combined_df.to_csv(f'fisher_master_file.csv', index=False, header=False, mode='a')
+                    best_match_fisher = find_best_match(flinn_desc, fisher_csv, 'Fisher_product_name', vectorizer, title_1_vec)[1]
+                    best_match = {
+                        **flinn_row.to_dict(),
+                        **(best_match_fisher or {col: '' for col in fisher_csv.columns})
+                    }
+                    write_visited_log(flinn_names)
+                    combined_df = pd.DataFrame([best_match])
+                    if os.path.isfile(f'fisher_master_file.csv'):
+                        combined_df.to_csv(f'fisher_master_file.csv', index=False, header=False, mode='a')
+                    else:
+                        combined_df.to_csv(f'fisher_master_file.csv', index=False)
+                except ValueError as e:
+                    print(f"Error processing '{flinn_desc}': {e}")
             else:
-                combined_df.to_csv(f'fisher_master_file.csv', index=False)
-
-
+                print(f"Skipping '{flinn_desc}' due to empty processed text")
 
 if __name__ == '__main__':
     start_time = time.time()
